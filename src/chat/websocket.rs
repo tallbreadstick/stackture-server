@@ -9,7 +9,8 @@ mod node;
 
 #[derive(Deserialize)]
 struct ChatRequest {
-    id: u64,
+    workspace_id: u64,
+    node_id: u64,
     token: String
 }
 
@@ -28,13 +29,7 @@ async fn handle_socket(mut socket: WebSocket) {
 
                     let is_sapling: bool = true;
 
-                    if request_data.id == 0 {
-                        // insert new session to db
-                        // get insert_id
-                    } else {
-                        // check if it is a node or sapling (chat before the creation of tree)
-                        // at error: send message and return
-                    }
+                    // do something with data passed
 
                     let _ = socket.send(Message::text("{\"status\": \"success\", \"message\": \"Session Opened\"}")).await;
 
