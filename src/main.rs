@@ -1,14 +1,13 @@
 pub mod auth;
 pub mod db;
 pub mod api;
+pub mod chat;
 
 use std::net::SocketAddr;
 
 use auth::{login::login, register::register};
 use axum::{
-    routing::{get, post, delete},
-    extract::{Path, State, Query},
-    Json,
+    routing::{get, post},
     Router
 };
 use db::postgres::connect_db;
@@ -31,9 +30,10 @@ async fn main() {
         // .route("/about", todo!())
         // .route("/dashboard", todo!())
         // .route("/workspace/{id}", todo!())
+        .route("/chat", get(chat::websocket::websocket_listener))
         .nest("/auth", auth_handler);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 80));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, http_server).await.expect("Failed to start backend server!");
