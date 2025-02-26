@@ -29,7 +29,7 @@ pub async fn register(
     )
     .fetch_optional(&db)
     .await
-    .map_err(|_| AuthError::DbOperationFailed)?;
+    .map_err(|_| AuthError::DatabaseOperationFailed)?;
     if let Some(user) = user {
         if user.username == payload.username {
             return Err(AuthError::UserAlreadyExists);
@@ -39,16 +39,17 @@ pub async fn register(
         }
     }
     let hash = hash_password(&payload.password)?;
-    let _ = sqlx::query!(
-        "INSERT INTO users (username, email, password) VALUES ($1, $2, $3)",
+    let user_id = sqlx::query!(
+        "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id",
         payload.username,
         payload.email,
         hash
     )
-    .execute(&db)
+    .fetch_one(&db)
     .await
-    .map_err(|_| AuthError::TokenCreationFailed)?;
-    let token = create_jwt(&payload.username)
+    .map_err(|_| AuthError::TokenCreationFailed)?
+    .id as u64;
+    let token = create_jwt(user_id)
         .map_err(|_| AuthError::TokenCreationFailed)?;
 
     Ok(Json(RegisterResponse { token }))

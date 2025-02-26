@@ -1,5 +1,8 @@
 pub mod auth;
 pub mod db;
+pub mod api;
+
+use std::net::SocketAddr;
 
 use auth::{login::login, register::register};
 use axum::{
@@ -30,7 +33,9 @@ async fn main() {
         // .route("/workspace/{id}", todo!())
         .nest("/auth", auth_handler);
 
-    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let addr = SocketAddr::from(([0, 0, 0, 0], 80));
+
+    let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, http_server).await.expect("Failed to start backend server!");
 
 }

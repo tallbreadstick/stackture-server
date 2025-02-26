@@ -4,8 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use dotenvy::dotenv;
 use jsonwebtoken::{encode, errors::Error as JWTError, EncodingKey, Header};
 use serde::Serialize;
+use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Serialize)]
@@ -20,50 +22,53 @@ pub enum AuthError {
     PasswordHashFailed,
     UserAlreadyExists,
     EmailAlreadyUsed,
-    DbOperationFailed
+    DatabaseOperationFailed
 }
 
 impl IntoResponse for AuthError {
     fn into_response(self) -> Response {
         match self {
             AuthError::InvalidCredentials => {
-                (StatusCode::UNAUTHORIZED, "Invalid username or password").into_response()
+                (StatusCode::UNAUTHORIZED, "InvalidCredentials").into_response()
             }
             AuthError::TokenCreationFailed => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Token creation failed").into_response()
+                (StatusCode::INTERNAL_SERVER_ERROR, "TokenCreationFailed").into_response()
             }
             AuthError::PasswordHashFailed => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Password hash failed").into_response()
+                (StatusCode::INTERNAL_SERVER_ERROR, "PasswordHashFailed").into_response()
             },
             AuthError::UserAlreadyExists => {
-                (StatusCode::CONFLICT, "Username already exists").into_response()
+                (StatusCode::CONFLICT, "UsernameAlreadyExists").into_response()
             },
             AuthError::EmailAlreadyUsed => {
-                (StatusCode::CONFLICT, "Email is already in use").into_response()
+                (StatusCode::CONFLICT, "EmailAlreadyUsed").into_response()
             },
-            AuthError::DbOperationFailed => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database operation failed").into_response()
+            AuthError::DatabaseOperationFailed => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "DatabaseOperationFailed").into_response()
             }
         }
     }
 }
 
-const SECRET_KEY: &[u8] = b"amparoluvsboys";
-
-pub fn create_jwt(user: &str) -> Result<String, JWTError> {
+pub fn create_jwt(user_id: u64) -> Result<String, JWTError> {
+    dotenv().expect("Failed to load environment variables!");
     let expiration = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
-        + 3600;
+        + 7200;
     let claims = Claims {
-        sub: user.into(),
+        sub: user_id.to_string(),
         exp: expiration as usize,
     };
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(SECRET_KEY),
+        &EncodingKey::from_secret(
+            env::var("JWT_SECRET")
+                .expect("JWT_SECRET must be set in the .env!")
+                .as_bytes()
+            )
     )
 }
 
