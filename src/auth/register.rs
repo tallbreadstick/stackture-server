@@ -48,7 +48,7 @@ pub async fn register(
     .fetch_one(&db)
     .await
     .map_err(|_| AuthError::TokenCreationFailed)?
-    .id as u64;
+    .id;
     let token = create_jwt(user_id)
         .map_err(|_| AuthError::TokenCreationFailed)?;
 

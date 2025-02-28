@@ -12,7 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Serialize)]
 pub struct Claims {
-    sub: String,
+    sub: i32,
     exp: usize,
 }
 
@@ -50,7 +50,7 @@ impl IntoResponse for AuthError {
     }
 }
 
-pub fn create_jwt(user_id: u64) -> Result<String, JWTError> {
+pub fn create_jwt(user_id: i32) -> Result<String, JWTError> {
     dotenv().expect("Failed to load environment variables!");
     let expiration = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -58,7 +58,7 @@ pub fn create_jwt(user_id: u64) -> Result<String, JWTError> {
         .as_secs()
         + 7200;
     let claims = Claims {
-        sub: user_id.to_string(),
+        sub: user_id,
         exp: expiration as usize,
     };
     encode(

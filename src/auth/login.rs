@@ -27,7 +27,7 @@ pub async fn login(
     .map_err(|_| AuthError::DatabaseOperationFailed)?;
     let user = user.ok_or(AuthError::InvalidCredentials)?;
     if verify_password(&payload.password, &user.password)? {
-        let token = create_jwt(user.id as u64)
+        let token = create_jwt(user.id)
             .map_err(|_| AuthError::TokenCreationFailed)?;
 
         Ok(Json(LoginResponse { token }))
