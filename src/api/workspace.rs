@@ -80,19 +80,18 @@ pub async fn get_workspace(
     let token_data = extract_token_data(auth)?;
 
     // Validate that the user owns the workspace containing the root_id
-    let user_owns_workspace = sqlx::query_scalar!(
-        "SELECT EXISTS (SELECT 1 FROM workspaces WHERE root_id = $1 AND user_id = $2)",
-        root_id,
-        token_data.user_id
+    let workspace_owner: Option<i32> = sqlx::query_scalar!(
+        "SELECT user_id FROM workspaces WHERE root_id = $1",
+        root_id
     )
-    .fetch_one(&db)
+    .fetch_optional(&db)
     .await
-    .map_err(|_| ApiError::DatabaseOperationFailed)?
-    .unwrap_or(false);
+    .map_err(|_| ApiError::DatabaseOperationFailed)?;
     
-    if !user_owns_workspace {
+    if workspace_owner != Some(token_data.user_id) {
         return Err(ApiError::UnauthorizedAccess);
     }
+    
 
     // Fetch all nodes in the workspace
     let nodes = sqlx::query!(
