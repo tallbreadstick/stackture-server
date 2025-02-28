@@ -17,6 +17,8 @@ use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
 use api::node;
 
+use tower_http::cors::{Any, CorsLayer};
+
 #[tokio::main]
 async fn main() {
     
@@ -57,7 +59,8 @@ async fn main() {
         .route("/chat", get(websocket_listener))
         .nest("/auth", auth_handler)
         .nest("/api", api_handler)
-        .with_state(db_pool.clone());
+        .with_state(db_pool.clone())
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 

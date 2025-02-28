@@ -1,7 +1,9 @@
 use axum::extract::ws::{Message, Utf8Bytes, WebSocket};
-use ollama_rs::generation::chat::ChatMessage;
-use ollama_rs::generation::chat::request::ChatMessageRequest;
-use ollama_rs::Ollama;
+use ollama_rs::generation::chat::{
+    ChatMessage,
+    request::ChatMessageRequest
+};
+use ollama_rs::{Ollama, coordinator::Coordinator};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -10,8 +12,18 @@ struct ChatResponse {
     message: String
 }
 
+
+/// Generates the tree from json format.
+///
+/// * nodes - The nodes of the tree with attributes (id: Int starting from 1, name: String name of the node, description: String description of the node, parents: list of integers with the ids of the parents, children: list of integers with the ids of the children).
+#[ollama_rs_macros::function]
+async fn generate_tree(nodes: String) -> Result<String, Box<dyn std::error::Error + Sync + Send>> {
+    Ok("42.7".to_string())
+}
+
+
 pub async fn sapling_chat(mut socket: WebSocket) {
-    let mut ollama = Ollama::new("http://192.168.1.4".to_string(), 11434);
+    let mut ollama = Ollama::new("http://192.168.1.10".to_string(), 11434);
     let mut history: Vec<ChatMessage> = vec![];
     let mut response: ChatResponse = ChatResponse {
         status: String::from("success"),
@@ -26,7 +38,7 @@ pub async fn sapling_chat(mut socket: WebSocket) {
                 &mut history, 
                 ChatMessageRequest::new(
                     "llama3.1".to_string(),
-                    vec![ChatMessage::user(text.to_string())], // <- You should provide only one message
+                    vec![ChatMessage::user(text.to_string())],
                 ),
             ).await;
 
