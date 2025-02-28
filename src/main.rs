@@ -11,6 +11,7 @@ use axum::{
     routing::{get, post, put, delete},
     Router
 };
+use chat::websocket::websocket_listener;
 use db::postgres::connect_db;
 use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
@@ -52,9 +53,11 @@ async fn main() {
         .route("/", get(root))
         // .route("/about", todo!())
         // .route("/dashboard", todo!())
-        // .route("/workspace/{id}", todo!())
-        .route("/chat", get(chat::websocket::websocket_listener))
-        .nest("/auth", auth_handler);
+        // .route("/workspace", todo!())
+        .route("/chat", get(websocket_listener))
+        .nest("/auth", auth_handler)
+        .nest("/api", api_handler)
+        .with_state(db_pool.clone());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 
