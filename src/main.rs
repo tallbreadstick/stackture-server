@@ -8,8 +8,7 @@ use std::net::SocketAddr;
 use api::workspace::{create_workspace, fetch_workspaces, get_workspace};
 use auth::{login::login, register::register};
 use axum::{
-    routing::{get, post, put, delete},
-    Router
+    http::header, routing::{delete, get, post, put}, Router
 };
 use chat::websocket::websocket_listener;
 use db::postgres::connect_db;
@@ -65,6 +64,10 @@ async fn main() {
                 .allow_origin(Any)
                 .allow_methods(Any)
                 .allow_headers(Any)
+                .allow_headers([
+                    header::AUTHORIZATION,
+                    header::CONTENT_TYPE
+                ])
         );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
