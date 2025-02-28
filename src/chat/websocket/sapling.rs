@@ -13,15 +13,6 @@ struct ChatResponse {
 }
 
 
-/// Generates the tree from json format.
-///
-/// * nodes - The nodes of the tree with attributes (id: Int starting from 1, name: String name of the node, description: String description of the node, parents: list of integers with the ids of the parents, children: list of integers with the ids of the children).
-#[ollama_rs_macros::function]
-async fn generate_tree(nodes: String) -> Result<String, Box<dyn std::error::Error + Sync + Send>> {
-    Ok("42.7".to_string())
-}
-
-
 pub async fn sapling_chat(mut socket: WebSocket) {
     let mut ollama = Ollama::new("http://192.168.1.10".to_string(), 11434);
     let mut history: Vec<ChatMessage> = vec![];
