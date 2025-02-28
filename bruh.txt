@@ -1,0 +1,48 @@
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password TEXT NOT NULL,
+    created TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE workspaces ( 
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE nodes ( 
+    id SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    summary TEXT,
+    optional BOOLEAN NOT NULL DEFAULT false,
+    resolved BOOLEAN NOT NULL DEFAULT false,
+    icon TEXT
+);
+
+ALTER TABLE workspaces
+ADD COLUMN root_id INTEGER UNIQUE REFERENCES nodes(id) ON DELETE SET NULL;
+
+
+CREATE TABLE node_parents (
+    node_id INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+    parent_id INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+    PRIMARY KEY (node_id, parent_id)
+);
+
+CREATE TABLE chats (
+    id SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    node_id INTEGER UNIQUE REFERENCES nodes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE messages (
+    id SERIAL PRIMARY KEY,
+    message TEXT CHECK (LENGTH(message) > 0),
+    is_user BOOLEAN NOT NULL,
+    chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    sent_at TIMESTAMP DEFAULT now()
+);

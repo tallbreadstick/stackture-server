@@ -5,13 +5,16 @@ pub mod chat;
 
 use std::net::SocketAddr;
 
+use api::workspace::{create_workspace, fetch_workspaces, get_workspace};
 use auth::{login::login, register::register};
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put, delete},
     Router
 };
 use db::postgres::connect_db;
+use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
+use api::node;
 
 #[tokio::main]
 async fn main() {
@@ -20,7 +23,27 @@ async fn main() {
 
     let db_pool = connect_db().await;
 
-    let auth_handler: Router = Router::new()
+    let node_handler: Router<Pool<Postgres>> = Router::new()
+        .route("/create", post(node::create))
+        .route("/add", post(node::add))
+        .route("/borrow", put(node::borrow))
+        .route("/drop", put(node::drop))
+        .route("/take", put(node::take))
+        .route("/delete", delete(node::delete))
+        .with_state(db_pool.clone());
+
+    let workspace_handler: Router<Pool<Postgres>> = Router::new()
+        .route("/create", post(create_workspace))
+        .route("/get/{id}", get(get_workspace))
+        .route("/fetch", get(fetch_workspaces))
+        .with_state(db_pool.clone());
+
+    let api_handler: Router<Pool<Postgres>> = Router::new()
+        .nest("/workspace", workspace_handler)
+        .nest("/node", node_handler)
+        .with_state(db_pool.clone());
+
+    let auth_handler: Router<Pool<Postgres>> = Router::new()
         .route("/login", post(login))
         .route("/register", post(register))
         .with_state(db_pool.clone());
