@@ -145,20 +145,6 @@ pub async fn fetch_workspaces(
     State(db): State<Pool<Postgres>>,
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
 ) -> Result<Json<Vec<Workspace>>, ApiError> {
-    // dotenv().expect("Failed to load environment variables!");
-    // let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set in .env!");
-    // let token_data = decode::<Value>(
-    //     auth.token(),
-    //     &DecodingKey::from_secret(secret.as_bytes()),
-    //     &Validation::default(),
-    // )
-    // .map_err(|_| ApiError::InvalidToken)?;
-    // let user_id = token_data.claims
-    //     .get("sub")
-    //     .and_then(|v| v.as_str())
-    //     .ok_or(ApiError::InvalidToken)?
-    //     .parse::<i32>()
-    //     .map_err(|_| ApiError::InvalidToken)?;
     let token_data = extract_token_data(auth)?;
     let workspaces = sqlx::query_as!(
         Workspace,

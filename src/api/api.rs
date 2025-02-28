@@ -10,6 +10,7 @@ use serde_json::Value;
 pub enum ApiError {
     DatabaseOperationFailed,
     InvalidToken,
+    TokenExpired,
     UnauthorizedAccess
 }
 
@@ -28,6 +29,9 @@ impl IntoResponse for ApiError {
             ApiError::InvalidToken => {
                 (StatusCode::UNAUTHORIZED, "InvalidToken").into_response()
             },
+            ApiError::TokenExpired => {
+                (StatusCode::UNAUTHORIZED, "TokenExpired").into_response()
+            },
             ApiError::UnauthorizedAccess => {
                 (StatusCode::UNAUTHORIZED, "UnauthorizedAccess").into_response()
             }
@@ -38,13 +42,23 @@ impl IntoResponse for ApiError {
 pub fn extract_token_data(auth: Authorization<Bearer>) -> Result<TokenData, ApiError> {
     dotenv().expect("Failed to load environment variables!");
     let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be defined in .env!");
+
+    let mut validation = Validation::default();
+    validation.validate_exp = true;
+
     let token_data = decode::<Value>(
         auth.token(),
         &DecodingKey::from_secret(secret.as_bytes()),
-        &Validation::default()
+        &validation,
     )
-    .map_err(|_| ApiError::InvalidToken)?;
-    
+    .map_err(|err| {
+        if err.kind() == &jsonwebtoken::errors::ErrorKind::ExpiredSignature {
+            ApiError::TokenExpired
+        } else {
+            ApiError::InvalidToken
+        }
+    })?;
+
     let token_data = TokenData {
         user_id: token_data.claims
             .get("sub")
@@ -53,8 +67,9 @@ pub fn extract_token_data(auth: Authorization<Bearer>) -> Result<TokenData, ApiE
         exp: token_data.claims
             .get("exp")
             .and_then(|v| v.as_u64())
-            .ok_or(ApiError::InvalidToken)? as usize
+            .ok_or(ApiError::InvalidToken)? as usize,
     };
+
     println!("Token Data: {:?}", token_data);
     Ok(token_data)
 }
