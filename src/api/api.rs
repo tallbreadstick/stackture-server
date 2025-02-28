@@ -44,18 +44,15 @@ pub fn extract_token_data(auth: Authorization<Bearer>) -> Result<TokenData, ApiE
         &Validation::default()
     )
     .map_err(|_| ApiError::InvalidToken)?;
+    
     Ok(TokenData {
         user_id: token_data.claims
             .get("sub")
-            .and_then(|v| v.as_str())
-            .ok_or(ApiError::InvalidToken)?
-            .parse::<i32>()
-            .map_err(|_| ApiError::InvalidToken)?,
+            .and_then(|v| v.as_i64())
+            .ok_or(ApiError::InvalidToken)? as i32,
         exp: token_data.claims
             .get("exp")
-            .and_then(|v| v.as_str())
-            .ok_or(ApiError::InvalidToken)?
-            .parse::<usize>()
-            .map_err(|_| ApiError::InvalidToken)?
+            .and_then(|v| v.as_u64())
+            .ok_or(ApiError::InvalidToken)? as usize
     })
 }
