@@ -25,7 +25,7 @@ https://github.com/DymNomZ/Stackture
 
 Endpoint
 
-    POST http://stackture.eloquenceprojects.org/auth/resgister
+    POST http://stackture.eloquenceprojects.org/auth/register
 
 Headers
 
