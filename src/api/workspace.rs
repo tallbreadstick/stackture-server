@@ -75,29 +75,28 @@ pub async fn create_workspace(
 pub async fn get_workspace(
     State(db): State<Pool<Postgres>>,
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
-    Path(root_id): Path<i32>,
+    Path(workspace_id): Path<i32>,
 ) -> Result<Json<Vec<WorkspaceNode>>, ApiError> {
     let token_data = extract_token_data(auth)?;
 
-    // Validate that the user owns the workspace containing the root_id
+    // Validate that the user owns the workspace
     let workspace_owner: Option<i32> = sqlx::query_scalar!(
-        "SELECT user_id FROM workspaces WHERE root_id = $1",
-        root_id
+        "SELECT user_id FROM workspaces WHERE id = $1",
+        workspace_id
     )
     .fetch_optional(&db)
     .await
     .map_err(|_| ApiError::DatabaseOperationFailed)?;
-    
+
     println!("ws-owner: {:?}, user: {:?}", workspace_owner, token_data.user_id);
     if workspace_owner != Some(token_data.user_id) {
         return Err(ApiError::UnauthorizedAccess);
     }
-    
 
     // Fetch all nodes in the workspace
     let nodes = sqlx::query!(
-        "SELECT id, name, summary, optional, resolved, icon FROM nodes WHERE workspace_id = (SELECT id FROM workspaces WHERE root_id = $1)",
-        root_id
+        "SELECT id, name, summary, optional, resolved, icon FROM nodes WHERE workspace_id = $1",
+        workspace_id
     )
     .fetch_all(&db)
     .await
@@ -105,8 +104,8 @@ pub async fn get_workspace(
 
     // Fetch parent-child relationships
     let relationships = sqlx::query!(
-        "SELECT node_id, parent_id FROM node_parents WHERE node_id IN (SELECT id FROM nodes WHERE workspace_id = (SELECT id FROM workspaces WHERE root_id = $1))",
-        root_id
+        "SELECT node_id, parent_id FROM node_parents WHERE node_id IN (SELECT id FROM nodes WHERE workspace_id = $1)",
+        workspace_id
     )
     .fetch_all(&db)
     .await
