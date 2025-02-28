@@ -13,7 +13,7 @@ pub enum ApiError {
     UnauthorizedAccess
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TokenData {
     pub user_id: i32,
     pub exp: usize
@@ -45,7 +45,7 @@ pub fn extract_token_data(auth: Authorization<Bearer>) -> Result<TokenData, ApiE
     )
     .map_err(|_| ApiError::InvalidToken)?;
     
-    Ok(TokenData {
+    let token_data = TokenData {
         user_id: token_data.claims
             .get("sub")
             .and_then(|v| v.as_i64())
@@ -54,5 +54,7 @@ pub fn extract_token_data(auth: Authorization<Bearer>) -> Result<TokenData, ApiE
             .get("exp")
             .and_then(|v| v.as_u64())
             .ok_or(ApiError::InvalidToken)? as usize
-    })
+    };
+    println!("Token Data: {:?}", token_data);
+    Ok(token_data)
 }
