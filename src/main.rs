@@ -8,14 +8,15 @@ use std::net::SocketAddr;
 use api::workspace::{create_workspace, fetch_workspaces, get_workspace};
 use auth::{login::login, register::register};
 use axum::{
-    http::header, routing::{delete, get, post, put}, Router
+    http::header,
+    routing::{delete, get, post, put},
+    Router
 };
 use chat::websocket::websocket_listener;
 use db::postgres::connect_db;
 use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
 use api::node;
-
 use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
@@ -63,7 +64,6 @@ async fn main() {
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_methods(Any)
-                .allow_headers(Any)
                 .allow_headers([
                     header::AUTHORIZATION,
                     header::CONTENT_TYPE
