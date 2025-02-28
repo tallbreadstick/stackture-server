@@ -88,6 +88,7 @@ pub async fn get_workspace(
     .await
     .map_err(|_| ApiError::DatabaseOperationFailed)?;
     
+    println!("ws-owner: {:?}, user: {:?}", workspace_owner, token_data.user_id);
     if workspace_owner != Some(token_data.user_id) {
         return Err(ApiError::UnauthorizedAccess);
     }
