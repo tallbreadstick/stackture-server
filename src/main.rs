@@ -60,7 +60,12 @@ async fn main() {
         .nest("/auth", auth_handler)
         .nest("/api", api_handler)
         .with_state(db_pool.clone())
-        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any));
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any)
+        );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 
