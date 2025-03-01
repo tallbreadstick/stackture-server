@@ -43,12 +43,12 @@ struct ChatWrapper {
 
 #[derive(Deserialize, Serialize, Default)]
 struct Node {
-    pub id: u64,
+    pub id: i32,
     pub name: String,
     pub summary: String,
     pub icon: String,
-    pub parents: Vec<u64>,
-    pub branches: Vec<u64>,
+    pub parents: Vec<i32>,
+    pub branches: Vec<i32>,
     pub optional: bool,
     pub resolved: bool
 }

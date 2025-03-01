@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres, query_scalar};
 use super::node::ChatMessage;
 
-pub async  fn verify_user_workspace(workspace_id: u64, user_id: i32, db: Pool<Postgres>) -> bool {
+pub async  fn verify_user_workspace(workspace_id: i32, user_id: i32, db: Pool<Postgres>) -> bool {
     // Validate that the user owns the workspace containing the root_id
     query_scalar!(
             "SELECT EXISTS (SELECT 1 FROM workspaces WHERE id = $1 AND user_id = $2)",
@@ -13,7 +13,7 @@ pub async  fn verify_user_workspace(workspace_id: u64, user_id: i32, db: Pool<Po
         .unwrap_or(false)
 }
 
-pub async fn fetch_chat_id(workspace_id: u64, node_id: u64, db: Pool<Postgres>) -> Result<i32> {
+pub async fn fetch_chat_id(workspace_id: i32, node_id: i32, db: Pool<Postgres>) -> Result<i32> {
     let chat_id: Option<i32> = if node_id == 0 {
         query_scalar!(
             "SELECT id FROM chats WHERE workspace_id = $1;",
@@ -64,7 +64,7 @@ pub async fn fetch_messages(chat_id: i32, db: Pool<Postgres>) -> Result<Vec<Chat
     Ok(messages_data)
 }
 
-pub async fn workspace_tree_exists(workspace_id: u64, db: Pool<Postgres>) -> bool {
+pub async fn workspace_tree_exists(workspace_id: i32, db: Pool<Postgres>) -> bool {
     let exists = query_scalar!(
         "SELECT root_id IS NOT NULL FROM workspaces WHERE id = $1;",
         workspace_id

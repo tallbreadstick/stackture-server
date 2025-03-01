@@ -12,8 +12,8 @@ use super::db::{verify_user_workspace, fetch_chat_id, workspace_tree_exists};
 
 #[derive(Deserialize)]
 struct ChatRequest {
-    workspace_id: u64,
-    node_id: u64,
+    workspace_id: i32,
+    node_id: i32,
     token: String
 }
 
