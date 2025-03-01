@@ -87,7 +87,7 @@ pub async fn workspace_tree_exists(workspace_id: i32, db: Pool<Postgres>) -> boo
     exists.unwrap_or(Some(false)).unwrap_or(false)
 }
 
-pub async fn insert_message(chat_id: i32, message: ChatMessage, db: Pool<Postgres>) {
+pub async fn insert_message(chat_id: i32, message: ChatMessage, db: &Pool<Postgres>) {
     match serde_json::to_string(&message) {
         Ok(message_data) => {
             let _ = query_scalar!(
@@ -95,10 +95,8 @@ pub async fn insert_message(chat_id: i32, message: ChatMessage, db: Pool<Postgre
                 message_data,
                 chat_id,
                 message.role == String::from("user")
-            ).fetch_optional(&db).await;
+            ).fetch_optional(db).await;
         }
-        Err(_e) => {
-            return
-        }
+        _ => {}
     }
 }

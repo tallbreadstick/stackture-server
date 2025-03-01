@@ -1,15 +1,11 @@
 use super::api::{extract_token_data, ApiError};
-use axum::{extract::{Path, State}, Json};
+use axum::{http::StatusCode, extract::{Path, State}, Json};
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use dotenvy::dotenv;
-use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sqlx::{Pool, Postgres};
-use std::env;
 
 // Tree Entity:
 // CREATE TABLE trees (
@@ -154,4 +150,24 @@ pub async fn fetch_workspaces(
     .await
     .map_err(|_| ApiError::DatabaseOperationFailed)?;
     Ok(Json(workspaces))
+}
+
+pub async fn delete_workspace(
+    State(db): State<Pool<Postgres>>,
+    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
+    Path(id): Path<i32>,
+) -> Result<StatusCode, ApiError> {
+    let token_data = extract_token_data(auth)?;
+    let result = sqlx::query!(
+        "DELETE FROM workspaces WHERE id = $1 AND user_id = $2",
+        id,
+        token_data.user_id
+    )
+    .execute(&db)
+    .await
+    .map_err(|_| ApiError::DatabaseOperationFailed)?;
+    if result.rows_affected() == 0 {
+        return Err(ApiError::ItemNotFound);
+    }
+    Ok(StatusCode::NO_CONTENT)
 }

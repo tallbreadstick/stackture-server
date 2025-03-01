@@ -12,13 +12,13 @@ struct ChatResponse {
 }
 
 #[derive(Deserialize, Serialize, Default, Clone)]
-struct ToolCall {
+pub struct ToolCall {
     pub name: String,
     pub arguments: String,
 }
 
 #[derive(Deserialize, Serialize, Default, Clone)]
-struct ToolCallInfo {
+pub struct ToolCallInfo {
     pub id: String,
     pub function: ToolCall,
     #[serde(rename = "type")]
@@ -42,7 +42,7 @@ struct ChatWrapper {
 }
 
 #[derive(Deserialize, Serialize, Default)]
-struct Node {
+pub struct Node {
     pub id: i32,
     pub name: String,
     pub summary: String,
@@ -62,7 +62,7 @@ struct Tree {
 pub struct ChatAIResponse {
     pub status: String,
     pub message: String,
-    generated_tree: Option<Vec<Node>>
+    pub generated_tree: Option<Vec<Node>>
 }
 
 
@@ -207,9 +207,9 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                             }
                         }
                     }
-                    insert_message(chat_id, user_chatmessage, db.clone());
+                    insert_message(chat_id, user_chatmessage, &db).await;
                     history.push(chat_wrapper.choices[0].message.clone());
-                    insert_message(chat_id, chat_wrapper.choices[0].message.clone(), db.clone());
+                    insert_message(chat_id, chat_wrapper.choices[0].message.clone(), &db).await;
                 }
                 Err(_e) => {
                     response.status = "error".to_string();

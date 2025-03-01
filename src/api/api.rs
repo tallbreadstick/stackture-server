@@ -11,7 +11,8 @@ pub enum ApiError {
     DatabaseOperationFailed,
     InvalidToken,
     TokenExpired,
-    UnauthorizedAccess
+    UnauthorizedAccess,
+    ItemNotFound
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,6 +35,9 @@ impl IntoResponse for ApiError {
             },
             ApiError::UnauthorizedAccess => {
                 (StatusCode::UNAUTHORIZED, "UnauthorizedAccess").into_response()
+            },
+            ApiError::ItemNotFound => {
+                (StatusCode::NOT_FOUND, "NotFound").into_response()
             }
         }
     }

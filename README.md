@@ -197,3 +197,21 @@ Error
     {
         "error": "{reason}"
     }
+
+### Delete Workspace
+
+Endpoint
+
+    DELETE http://stackture.eloquenceprojects.org/api/workspace/delete/{id}
+
+Headers
+
+    Authorization: Bearer {jwt}
+
+Success (204 NO CONTENT)
+
+Error
+
+    {
+        "error": "{reason}"
+    }

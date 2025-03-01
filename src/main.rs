@@ -5,7 +5,7 @@ pub mod chat;
 
 use std::net::SocketAddr;
 
-use api::workspace::{create_workspace, fetch_workspaces, get_workspace};
+use api::workspace::{create_workspace, delete_workspace, fetch_workspaces, get_workspace};
 use auth::{login::login, register::register};
 use axum::{
     http::header,
@@ -38,6 +38,7 @@ async fn main() {
     let workspace_handler: Router<Pool<Postgres>> = Router::new()
         .route("/create", post(create_workspace))
         .route("/get/{id}", get(get_workspace))
+        .route("/delete/{id}", delete(delete_workspace))
         .route("/fetch", get(fetch_workspaces))
         .with_state(db_pool.clone());
 
