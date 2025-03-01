@@ -51,7 +51,7 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                     };
 
                     let tree_exist: bool = workspace_tree_exists(request_data.workspace_id, db).await;
-                    let chat_id: u64;
+                    let chat_id: i32;
                     
                     match fetch_chat_id(request_data.workspace_id, request_data.node_id, db).await {
                         Ok(id) => {

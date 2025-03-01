@@ -7,53 +7,53 @@ use super::db::{fetch_messages, insert_message};
 
 #[derive(Deserialize, Serialize, Clone)]
 struct ChatResponse {
-    finish_reason: String,
-    message: ChatMessage
+    pub finish_reason: String,
+    pub message: ChatMessage
 }
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 struct ToolCall {
-    name: String,
-    arguments: String,
+    pub name: String,
+    pub arguments: String,
 }
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 struct ToolCallInfo {
-    id: String,
-    function: ToolCall,
+    pub id: String,
+    pub function: ToolCall,
     #[serde(rename = "type")]
-    r#type: String,
+    pub r#type: String,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ChatMessage {
-    role: String,
+    pub role: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
+    pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    content: Option<String>,
+    pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    tool_calls: Option<Vec<ToolCallInfo>>
+    pub tool_calls: Option<Vec<ToolCallInfo>>
 }
 
 #[derive(Deserialize, Serialize, Default)]
 struct ChatWrapper {
-    choices: Vec<ChatResponse>
+    pub choices: Vec<ChatResponse>
 }
 
 #[derive(Deserialize, Serialize, Default)]
 struct Node {
-    id: u64,
-    name: String,
-    description: String,
-    parents: Vec<u64>,
-    children: Vec<u64>,
-    optional: bool
+    pub id: u64,
+    pub name: String,
+    pub description: String,
+    pub parents: Vec<u64>,
+    pub children: Vec<u64>,
+    pub optional: bool
 }
 
 #[derive(Deserialize, Serialize, Default)]
 struct Tree {
-    tree: Vec<Node>
+    pub tree: Vec<Node>
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -64,7 +64,7 @@ pub struct ChatAIResponse {
 }
 
 
-pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: u64, db: Pool<Postgres>) {
+pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db: Pool<Postgres>) {
     let client = Client::new();
 
     let mut headers = header::HeaderMap::new();
@@ -173,7 +173,6 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: u64, db
                         let tree: Tree = serde_json::from_str(tools[0].clone().function.arguments.as_str()).unwrap_or(Tree::default());
                         response.generated_tree = Some(tree.tree);
                     }
-                    // db push changes
                     insert_message(chat_id, user_chatmessage, db);
                     history.push(chat_wrapper.choices[0].message.clone());
                     insert_message(chat_id, chat_wrapper.choices[0].message.clone(), db);
@@ -184,7 +183,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: u64, db
                     return;
                 }
             }
-            let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap())).await;
+            let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
         }
     }   
 }
