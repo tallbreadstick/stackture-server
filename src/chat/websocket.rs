@@ -26,7 +26,7 @@ pub fn create_socket_response(status: &str, message: &str) -> String {
 }
 
 pub async fn websocket_listener(ws: WebSocketUpgrade, State(db): State<Pool<Postgres>>) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, db.clone()));
+    let _ = ws.on_upgrade(move |socket| handle_socket(socket, db.clone()));
 }
 
 async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
@@ -39,7 +39,7 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
 
                     match extract_token_data_str(request_data.token) {
                         Ok(success_token) => {
-                            if !verify_user_workspace(request_data.workspace_id, success_token.user_id, db).await {
+                            if !verify_user_workspace(request_data.workspace_id, success_token.user_id, db.clone()).await {
                                 let _ = socket.send(Message::text(create_socket_response("error", "Unauthorized Access"))).await;
                                 return;
                             }
@@ -50,10 +50,10 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                         }
                     };
 
-                    let tree_exist: bool = workspace_tree_exists(request_data.workspace_id, db).await;
+                    let tree_exist: bool = workspace_tree_exists(request_data.workspace_id, db.clone()).await;
                     let chat_id: i32;
                     
-                    match fetch_chat_id(request_data.workspace_id, request_data.node_id, db).await {
+                    match fetch_chat_id(request_data.workspace_id, request_data.node_id, db.clone()).await {
                         Ok(id) => {
                             chat_id = id;
                         }
@@ -65,7 +65,7 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
 
                     let _ = socket.send(Message::text(create_socket_response("success", "Session Opened"))).await;
 
-                    node_chat(socket, tree_exist, chat_id, db).await;
+                    node_chat(socket, tree_exist, chat_id, db.clone()).await;
                 }
                 Err(_e) => {
                     let _ = socket.send(Message::text(create_socket_response("error", "Incorrect Request"))).await;

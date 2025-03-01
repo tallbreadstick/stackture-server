@@ -97,7 +97,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
         generated_tree: None
     };
 
-    history.extend(fetch_messages(chat_id, db).await.unwrap_or(vec![]));
+    history.extend(fetch_messages(chat_id, db.clone()).await.unwrap_or(vec![]));
 
     while let Some(Ok(msg)) = socket.recv().await {
         if let Message::Text(text) = msg {
@@ -108,7 +108,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                 tool_calls: None
             };
 
-            history.push(user_chatmessage);
+            history.push(user_chatmessage.clone());
 
             let res = client.post("https://api.groq.com/openai/v1/chat/completions")
                 .headers(headers.clone())
@@ -197,7 +197,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                                 response.message = String::from("Here is the generated tree.");
                                 response.generated_tree = Some(tree.tree);
 
-                                let mut system_message: &mut ChatMessage = history.get_mut(0).unwrap();
+                                let system_message: &mut ChatMessage = history.get_mut(0).unwrap();
                                 system_message.content = Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into());
                             }
                             Err(_e) => {
@@ -207,9 +207,9 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                             }
                         }
                     }
-                    insert_message(chat_id, user_chatmessage, db);
+                    insert_message(chat_id, user_chatmessage, db.clone());
                     history.push(chat_wrapper.choices[0].message.clone());
-                    insert_message(chat_id, chat_wrapper.choices[0].message.clone(), db);
+                    insert_message(chat_id, chat_wrapper.choices[0].message.clone(), db.clone());
                 }
                 Err(_e) => {
                     response.status = "error".to_string();
