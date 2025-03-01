@@ -45,10 +45,12 @@ struct ChatWrapper {
 struct Node {
     pub id: u64,
     pub name: String,
-    pub description: String,
+    pub summary: String,
+    pub icon: String,
     pub parents: Vec<u64>,
-    pub children: Vec<u64>,
-    pub optional: bool
+    pub branches: Vec<u64>,
+    pub optional: bool,
+    pub resolved: bool
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -71,12 +73,23 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
     headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
     headers.insert(header::AUTHORIZATION, "Bearer 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".parse().unwrap());
 
-    let mut history: Vec<ChatMessage> = vec![ChatMessage {
-        content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problems into multiple subproblems. Only use the 'generate_tree' function when explicitly asked to create a tree. DO NOT include JSON in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
-        role: "system".into(),
-        name: None,
-        tool_calls: None
-    }];
+    let mut history: Vec<ChatMessage> = vec![];
+
+    if tree_exist {
+        history.push(ChatMessage {
+            content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into()),
+            role: "system".into(),
+            name: None,
+            tool_calls: None
+        });
+    } else {
+        history.push(ChatMessage {
+            content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problems into multiple subproblems. Only use the 'generate_tree' function when explicitly asked to create a tree. DO NOT include JSON in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
+            role: "system".into(),
+            name: None,
+            tool_calls: None
+        });
+    }
 
     let mut response: ChatAIResponse = ChatAIResponse {
         status: String::from("success"),
@@ -126,9 +139,13 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                                                         "type": "string",
                                                         "description": "Name of the node."
                                                     },
-                                                    "description": {
+                                                    "summary": {
                                                         "type": "string",
                                                         "description": "Description of the node."
+                                                    },
+                                                    "icon": {
+                                                        "type": "string",
+                                                        "description": "Unicode emoji to represent the node."
                                                     },
                                                     "parents": {
                                                         "type": "array",
@@ -137,7 +154,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                                                             "description": "IDs of parent nodes."
                                                         }
                                                     },
-                                                    "children": {
+                                                    "branches": {
                                                         "type": "array",
                                                         "items": {
                                                             "type": "integer",
@@ -147,9 +164,13 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                                                     "optional": {
                                                         "type": "boolean",
                                                         "description": "Indicates if the node is optional for solving the parent."
+                                                    },
+                                                    "resolved": {
+                                                        "type": "boolean",
+                                                        "description": "Indicates if the node is complete. ALWAYS FALSE."
                                                     }
                                                 },
-                                                "required": ["id", "name", "description", "parents", "children", "optional"]
+                                                "required": ["id", "name", "summary", "icon", "parents", "branches", "optional", "resolved"]
                                             }
                                         }
                                     }
@@ -170,7 +191,21 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                         response.message = message;
                         response.generated_tree = None;
                     } else if tools.len() > 0 {
-                        let tree: Tree = serde_json::from_str(tools[0].clone().function.arguments.as_str()).unwrap_or(Tree::default());
+                        let _tree: Result<Tree, _> = serde_json::from_str(tools[0].clone().function.arguments.as_str());
+                        match _tree {
+                            Ok(tree) => {
+                                response.message = String::from("Here is the generated tree.");
+                                response.generated_tree = Some(tree.tree);
+
+                                let mut system_message: ChatMessage = history.get_mut(0).unwrap();
+                                system_message.content = Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into());
+                            }
+                            Err(_e) => {
+                                response.status = "error".to_string();
+                                response.message = "Tree Generation Error!".to_string();
+                                return;
+                            }
+                        }
                         response.generated_tree = Some(tree.tree);
                     }
                     insert_message(chat_id, user_chatmessage, db);
