@@ -72,7 +72,7 @@ pub async fn workspace_tree_exists(workspace_id: u64, db: Pool<Postgres>) -> boo
     .fetch_one(&db)
     .await;
 
-    exists.unwrap_or(false)
+    exists.unwrap_or(Some(false)).unwrap_or(false)
 }
 
 pub async fn insert_message(chat_id: i32, message: ChatMessage, db: Pool<Postgres>) {
