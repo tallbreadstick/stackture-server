@@ -187,6 +187,13 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
             match res {
                 Ok(response_data) => {
                     let chat_wrapper: ChatWrapper = response_data.json().await.unwrap_or(ChatWrapper::default());
+                    if chat_wrapper.choices.len() == 0 {
+                        response.status = "error".to_string();
+                        response.message = "AI Generation Error!".to_string();
+                        let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
+                        return;
+                    }
+
                     let message: String = chat_wrapper.choices[0].message.content.clone().unwrap_or(String::new());
                     let tools: Vec<ToolCallInfo> = chat_wrapper.choices[0].clone().message.tool_calls.unwrap_or(vec![]);
 
