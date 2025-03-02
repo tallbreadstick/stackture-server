@@ -1,9 +1,11 @@
+use std::env;
+
 use axum::extract::ws::{Message, WebSocket};
 use serde::{Serialize, Deserialize};
 use reqwest::{Client, header};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
-use super::db::{fetch_messages, insert_message};
+use super::db::{fetch_messages, insert_message, insert_tree};
 
 #[derive(Deserialize, Serialize, Clone)]
 struct ChatResponse {
@@ -41,7 +43,7 @@ struct ChatWrapper {
     pub choices: Vec<ChatResponse>
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 pub struct Node {
     pub id: i32,
     pub name: String,
@@ -53,8 +55,8 @@ pub struct Node {
     pub resolved: bool
 }
 
-#[derive(Deserialize, Serialize, Default)]
-struct Tree {
+#[derive(Deserialize, Serialize, Default, Clone)]
+pub struct Tree {
     pub tree: Vec<Node>
 }
 
@@ -66,30 +68,31 @@ pub struct ChatAIResponse {
 }
 
 
-pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db: Pool<Postgres>) {
+pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, chat_id: i32, db: Pool<Postgres>) {
     let client = Client::new();
+    let api_key = format!("Bearer {}", env::var("GROQ_API").expect("GROQ_API must be defined in .env!"));
 
     let mut headers = header::HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
-    headers.insert(header::AUTHORIZATION, "Bearer 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".parse().unwrap());
+    headers.insert(header::AUTHORIZATION, api_key.parse().unwrap());
 
     let mut history: Vec<ChatMessage> = vec![];
 
-    if tree_exist {
-        history.push(ChatMessage {
-            content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into()),
-            role: "system".into(),
-            name: None,
-            tool_calls: None
-        });
-    } else {
-        history.push(ChatMessage {
-            content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problems into multiple subproblems. Only use the 'generate_tree' function when explicitly asked to create a tree. DO NOT include JSON in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
-            role: "system".into(),
-            name: None,
-            tool_calls: None
-        });
-    }
+    // if tree_exist {
+    //     history.push(ChatMessage {
+    //         content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into()),
+    //         role: "system".into(),
+    //         name: None,
+    //         tool_calls: None
+    //     });
+    // } else {
+
+    history.push(ChatMessage {
+        content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when explicitly asked to create a tree. DO NOT include JSON or any references of 'generate_tree' function in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
+        role: "system".into(),
+        name: None,
+        tool_calls: None
+    });
 
     let mut response: ChatAIResponse = ChatAIResponse {
         status: String::from("success"),
@@ -127,7 +130,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                                     "properties": {
                                         "tree": {
                                             "type": "array",
-                                            "description": "Array of nodes representing the tree structure.",
+                                            "description": "Array of nodes representing the tree structure. There will only be one root node which will be the main problem.",
                                             "items": {
                                                 "type": "object",
                                                 "properties": {
@@ -194,15 +197,29 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                         let _tree: Result<Tree, _> = serde_json::from_str(tools[0].clone().function.arguments.as_str());
                         match _tree {
                             Ok(tree) => {
-                                response.message = String::from("Here is the generated tree.");
-                                response.generated_tree = Some(tree.tree);
+                                let tree_nodes = tree.tree;
 
-                                let system_message: &mut ChatMessage = history.get_mut(0).unwrap();
-                                system_message.content = Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into());
+                                response.message = String::from("Here is the generated tree.");
+                                response.generated_tree = Some(tree_nodes.clone());
+
+                                if node_id > 0 {
+                                    // sub tree insert
+                                } else {
+                                    if let Err(_) = insert_tree(workspace_id, &tree_nodes, &db).await {
+                                        response.status = "error".to_string();
+                                        response.message = "Tree Insertion Error!".to_string();
+                                        let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
+                                        return;
+                                    }
+                                }
+
+                                // let system_message: &mut ChatMessage = history.get_mut(0).unwrap();
+                                // system_message.content = Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into());
                             }
                             Err(_e) => {
                                 response.status = "error".to_string();
                                 response.message = "Tree Generation Error!".to_string();
+                                let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
                                 return;
                             }
                         }
@@ -214,6 +231,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
                 Err(_e) => {
                     response.status = "error".to_string();
                     response.message = "AI Generation Error!".to_string();
+                    let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
                     return;
                 }
             }

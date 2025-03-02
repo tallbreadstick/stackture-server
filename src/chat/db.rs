@@ -1,5 +1,7 @@
-use sqlx::{Pool, Postgres, query_scalar};
-use super::node::ChatMessage;
+use std::collections::HashMap;
+
+use sqlx::{query_scalar, Error, Pool, Postgres, Transaction};
+use super::node::{ChatMessage, Node, Tree};
 
 pub async  fn verify_user_workspace(workspace_id: i32, user_id: i32, db: Pool<Postgres>) -> bool {
     // Validate that the user owns the workspace containing the root_id
@@ -99,4 +101,60 @@ pub async fn insert_message(chat_id: i32, message: ChatMessage, db: &Pool<Postgr
         }
         _ => {}
     }
+}
+
+pub async fn insert_tree(workspace_id: i32, tree: &Vec<Node>, db: &Pool<Postgres>) -> Result<(), Error> {
+    let tx: Transaction<Postgres> = db.begin().await?;
+
+    if let Err(_) = query_scalar!("DELETE FROM nodes WHERE workspace_id = $1;", workspace_id).fetch_optional(db).await {
+        // Error cannot remove the current tree
+        tx.rollback().await?;
+        return Err(Error::PoolClosed);
+    }
+
+    let mut keys: HashMap<i32, i32> = HashMap::new();
+
+    // i dont like the method, but hell yeahhh
+    for i in tree {
+        match query_scalar!(
+            "INSERT INTO nodes (workspace_id, name, summary, optional, resolved, icon) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
+            workspace_id,
+            i.name,
+            i.summary,
+            i.optional,
+            i.resolved,
+            i.icon
+        ).fetch_one(db).await {
+            Ok(id) => {
+                keys.insert(i.id, id);
+            }
+            Err(_) => {
+                // Error cannot insert node
+                tx.rollback().await?;
+                return Err(Error::PoolClosed);
+            }
+        }
+    }
+
+    for i in tree {
+        let parents_clone = i.parents.clone();
+
+        for parent in &parents_clone {
+            let id_clone = i.id.clone();
+
+            if let Err(_) = query_scalar!(
+                "INSERT INTO node_parents (node_id, parent_id) VALUES ($1, $2);",
+                keys.get(&id_clone).unwrap(),    // :D value should be expected from above... unless some bit in the system is being a good boy
+                keys.get(parent).unwrap()
+            ).fetch_optional(db).await {
+                // Error parent insertion
+                tx.rollback().await?;
+                return Err(Error::PoolClosed);
+            }
+        }
+    }
+
+    tx.commit().await?;
+
+    Ok(())
 }

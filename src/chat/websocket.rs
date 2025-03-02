@@ -122,7 +122,7 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
         return;
     }
 
-    let tree_exist = workspace_tree_exists(request_data.workspace_id, db.clone()).await;
+    // let tree_exist = workspace_tree_exists(request_data.workspace_id, db.clone()).await;
 
     let chat_id = match fetch_chat_id(request_data.workspace_id, request_data.node_id, db.clone())
         .await
@@ -152,7 +152,7 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
             errlog(SOCKET, &e);
         });
 
-    node_chat(socket, tree_exist, chat_id, db.clone()).await;
+    node_chat(socket, request_data.workspace_id, request_data.node_id, chat_id, db.clone()).await;
 }
 
 // async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
