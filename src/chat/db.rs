@@ -137,22 +137,22 @@ pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Post
     }
 
     for i in tree {
-        for ref mut parent in i.parents.as_mut_slice() {
+        for parent in i.parents.as_mut_slice() {
             if let Err(_) = query_scalar!(
                 "INSERT INTO node_parents (node_id, parent_id) VALUES ($1, $2);",
                 keys.get(&i.id).unwrap(),    // :D value should be expected from above... unless some bit in the system is being a good boy
-                keys.get(*parent).unwrap()
+                keys.get(parent).unwrap()
             ).fetch_optional(db).await {
                 // Error parent insertion
                 tx.rollback().await?;
                 return Err(Error::PoolClosed);
             }
 
-            *parent = keys.get_mut(parent).unwrap();
+            *parent = *keys.get_mut(parent).unwrap();
         }
 
-        for ref mut branch in i.branches.as_mut_slice() {
-            *branch = keys.get_mut(branch).unwrap();
+        for branch in i.branches.as_mut_slice() {
+            *branch = *keys.get_mut(branch).unwrap();
         }
 
         i.id = *keys.get(&i.id).unwrap();
