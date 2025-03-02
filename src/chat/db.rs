@@ -103,7 +103,7 @@ pub async fn insert_message(chat_id: i32, message: ChatMessage, db: &Pool<Postgr
     }
 }
 
-pub async fn insert_tree(workspace_id: i32, tree: &Vec<Node>, db: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Postgres>) -> Result<(), Error> {
     let tx: Transaction<Postgres> = db.begin().await?;
 
     if let Err(_) = query_scalar!("DELETE FROM nodes WHERE workspace_id = $1;", workspace_id).fetch_optional(db).await {
@@ -115,7 +115,7 @@ pub async fn insert_tree(workspace_id: i32, tree: &Vec<Node>, db: &Pool<Postgres
     let mut keys: HashMap<i32, i32> = HashMap::new();
 
     // i dont like the method, but hell yeahhh
-    for i in tree {
+    for i in tree.as_mut_slice() {
         match query_scalar!(
             "INSERT INTO nodes (workspace_id, name, summary, optional, resolved, icon) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
             workspace_id,
@@ -140,11 +140,9 @@ pub async fn insert_tree(workspace_id: i32, tree: &Vec<Node>, db: &Pool<Postgres
         let parents_clone = i.parents.clone();
 
         for parent in &parents_clone {
-            let id_clone = i.id.clone();
-
             if let Err(_) = query_scalar!(
                 "INSERT INTO node_parents (node_id, parent_id) VALUES ($1, $2);",
-                keys.get(&id_clone).unwrap(),    // :D value should be expected from above... unless some bit in the system is being a good boy
+                keys.get(&i.id).unwrap(),    // :D value should be expected from above... unless some bit in the system is being a good boy
                 keys.get(parent).unwrap()
             ).fetch_optional(db).await {
                 // Error parent insertion
@@ -152,6 +150,8 @@ pub async fn insert_tree(workspace_id: i32, tree: &Vec<Node>, db: &Pool<Postgres
                 return Err(Error::PoolClosed);
             }
         }
+
+        i.id = *keys.get(&i.id).unwrap();
     }
 
     tx.commit().await?;

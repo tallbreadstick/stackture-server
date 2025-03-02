@@ -197,21 +197,21 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                         let _tree: Result<Tree, _> = serde_json::from_str(tools[0].clone().function.arguments.as_str());
                         match _tree {
                             Ok(tree) => {
-                                let tree_nodes = tree.tree;
-
-                                response.message = String::from("Here is the generated tree.");
-                                response.generated_tree = Some(tree_nodes.clone());
+                                let mut tree_nodes = tree.tree;
 
                                 if node_id > 0 {
                                     // sub tree insert
                                 } else {
-                                    if let Err(_) = insert_tree(workspace_id, &tree_nodes, &db).await {
+                                    if let Err(_) = insert_tree(workspace_id, &mut tree_nodes, &db).await {
                                         response.status = "error".to_string();
                                         response.message = "Tree Insertion Error!".to_string();
                                         let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
                                         return;
                                     }
                                 }
+
+                                response.message = String::from("Here is the generated tree.");
+                                response.generated_tree = Some(tree_nodes.clone());
 
                                 // let system_message: &mut ChatMessage = history.get_mut(0).unwrap();
                                 // system_message.content = Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. You have already generated a tree, therefore you are no longer allowed to generate another one. Your next task is to assist the user with the tree you have generated before. Your direct responses to the user must always be in natural language.".into());
