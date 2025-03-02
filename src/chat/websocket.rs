@@ -1,6 +1,7 @@
 use super::db::{fetch_chat_id, verify_user_workspace, workspace_tree_exists};
 use super::node::{node_chat, ChatAIResponse, Node};
 use crate::api::api::extract_token_data_str;
+use crate::debug::{errlog, LogType::SOCKET};
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -85,8 +86,8 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                         .into_message(),
                 )
                 .await
-                .unwrap_or_else(|_| {
-                    // log error?
+                .unwrap_or_else(|e| {
+                    errlog(SOCKET, &e);
                 });
             return;
         }
@@ -101,8 +102,8 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                         .into_message(),
                 )
                 .await
-                .unwrap_or_else(|_| {
-                    // log error?
+                .unwrap_or_else(|e| {
+                    errlog(SOCKET, &e);
                 });
             return;
         }
@@ -115,8 +116,8 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                     .into_message(),
             )
             .await
-            .unwrap_or_else(|_| {
-                // log error?
+            .unwrap_or_else(|e| {
+                errlog(SOCKET, &e);
             });
         return;
     }
@@ -134,8 +135,8 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                         .into_message(),
                 )
                 .await
-                .unwrap_or_else(|_| {
-                    // log error?
+                .unwrap_or_else(|e| {
+                    errlog(SOCKET, &e);
                 });
             return;
         }
@@ -147,8 +148,8 @@ async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
                 .into_message(),
         )
         .await
-        .unwrap_or_else(|_| {
-            // log error?
+        .unwrap_or_else(|e| {
+            errlog(SOCKET, &e);
         });
 
     node_chat(socket, tree_exist, chat_id, db.clone()).await;

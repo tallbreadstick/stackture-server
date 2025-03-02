@@ -184,7 +184,7 @@ pub async fn node_chat(mut socket: WebSocket, tree_exist: bool, chat_id: i32, db
             match res {
                 Ok(response_data) => {
                     let chat_wrapper: ChatWrapper = response_data.json().await.unwrap_or(ChatWrapper::default());
-                    let mut message: String = chat_wrapper.choices[0].message.content.clone().unwrap_or(String::new());
+                    let message: String = chat_wrapper.choices[0].message.content.clone().unwrap_or(String::new());
                     let tools: Vec<ToolCallInfo> = chat_wrapper.choices[0].clone().message.tool_calls.unwrap_or(vec![]);
 
                     if !message.is_empty() {

@@ -19,7 +19,7 @@ pub async fn login(
     State(db): State<Pool<Postgres>>,
     Json(payload): Json<LoginRequest>
 ) -> Result<Json<LoginResponse>, AuthError> {
-    log(HTTP, &format!("UserID <{}> requested LOGIN", payload.username));
+    log(HTTP, &format!("User <{}> requested LOGIN", payload.username));
     let user = sqlx::query!(
         "SELECT id, password FROM users WHERE username = $1",
         payload.username
