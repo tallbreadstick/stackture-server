@@ -70,7 +70,7 @@ pub async fn websocket_listener(
     ws: WebSocketUpgrade,
     State(db): State<Pool<Postgres>>,
 ) -> impl IntoResponse {
-    let _ = ws.on_upgrade(move |socket| handle_socket(socket, db.clone()));
+    ws.on_upgrade(move |socket| handle_socket(socket, db.clone()))
 }
 
 async fn handle_socket(mut socket: WebSocket, db: Pool<Postgres>) {
