@@ -4,6 +4,7 @@ use sqlx::{Pool, Postgres};
 use super::auth::hash_password;
 use super::auth::AuthError;
 use super::auth::create_jwt;
+use crate::debug::{log, LogType::HTTP};
 
 #[derive(Serialize, Deserialize)]
 pub struct RegisterRequest {
@@ -22,6 +23,7 @@ pub async fn register(
     State(db): State<Pool<Postgres>>,
     Json(payload): Json<RegisterRequest>
 ) -> Result<Json<RegisterResponse>, AuthError> {
+    log(HTTP, &format!("Anonymous user requested REGISTER as <{}> with <{}>", payload.username, payload.email));
     let user = sqlx::query!(
         "SELECT id, username, email FROM users WHERE username = $1 OR email = $2",
         payload.username,

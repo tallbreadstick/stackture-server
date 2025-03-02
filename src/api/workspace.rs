@@ -1,3 +1,4 @@
+use crate::debug::{log, LogType::HTTP};
 use super::api::{extract_token_data, ApiError};
 use axum::{http::StatusCode, extract::{Path, State}, Json};
 use axum_extra::{
@@ -55,6 +56,7 @@ pub async fn create_workspace(
     Json(payload): Json<CreateWorkspaceRequest>,
 ) -> Result<Json<CreateWorkspaceResponse>, ApiError> {
     let token_data = extract_token_data(auth)?;
+    log(HTTP, &format!("UserID <{}> requested CREATE workspace", token_data.user_id));
     let workspace_id = sqlx::query!(
         "INSERT INTO workspaces (user_id, title, description) VALUES ($1, $2, $3) RETURNING id",
         token_data.user_id,
@@ -74,6 +76,7 @@ pub async fn get_workspace(
     Path(workspace_id): Path<i32>,
 ) -> Result<Json<Vec<WorkspaceNode>>, ApiError> {
     let token_data = extract_token_data(auth)?;
+    log(HTTP, &format!("UserID <{}> requested GET workspace <{}>", token_data.user_id, workspace_id));
 
     // Validate that the user owns the workspace
     let workspace_owner: Option<i32> = sqlx::query_scalar!(
@@ -141,6 +144,7 @@ pub async fn fetch_workspaces(
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
 ) -> Result<Json<Vec<Workspace>>, ApiError> {
     let token_data = extract_token_data(auth)?;
+    log(HTTP, &format!("UserID <{}> requested FETCH workspaces", token_data.user_id));
     let workspaces = sqlx::query_as!(
         Workspace,
         "SELECT id, title, description, root_id FROM workspaces WHERE user_id = $1",
@@ -158,6 +162,7 @@ pub async fn delete_workspace(
     Path(id): Path<i32>,
 ) -> Result<StatusCode, ApiError> {
     let token_data = extract_token_data(auth)?;
+    log(HTTP, &format!("UserID <{}> requested DELETE workspace <{}>", token_data.user_id, id));
     let result = sqlx::query!(
         "DELETE FROM workspaces WHERE id = $1 AND user_id = $2",
         id,

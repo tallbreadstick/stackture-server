@@ -2,6 +2,7 @@ pub mod auth;
 pub mod db;
 pub mod api;
 pub mod chat;
+pub mod debug;
 
 use std::net::SocketAddr;
 
@@ -14,6 +15,7 @@ use axum::{
 };
 use chat::websocket::websocket_listener;
 use db::postgres::connect_db;
+use debug::{log, LogType::SETUP};
 use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
 use api::node;
@@ -22,7 +24,7 @@ use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() {
     
-    println!("Starting Stackture backend server...");
+    log(SETUP, "Starting Stackture backend server...");
 
     let db_pool = connect_db().await;
 
