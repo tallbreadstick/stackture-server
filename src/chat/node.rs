@@ -88,7 +88,7 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
     // } else {
 
     history.push(ChatMessage {
-        content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when told to create a tree. DO NOT include JSON or any references of 'generate_tree' function in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
+        content: Some("You are an assistant that can generate tree using 'generate_tree' function. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when told to create a tree. DO NOT include any references of 'generate_tree' function in your responses. Your direct responses to the user must always be in natural language. Your responses must not contain any JSON format unless if in the 'generate_tree' function or when the user explicitly asked for a JSON format.".into()),
         role: "system".into(),
         name: None,
         tool_calls: None
@@ -254,6 +254,10 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                     history.push(chat_wrapper.choices[0].message.clone());
                     if let Some(new_message) = history.last() {
                         insert_message(chat_id, new_message, &db).await;
+                    }
+
+                    while history.len() > 6 {
+                        history.remove(0);
                     }
                 }
                 Err(_e) => {

@@ -104,7 +104,7 @@ pub async fn fetch_current_tree(workspace_id: i32, db: &Pool<Postgres>) -> Resul
 
 pub async fn fetch_messages(chat_id: i32, db: Pool<Postgres>) -> Result<Vec<ChatMessage>, ()> {
     let messages: Vec<String> = query_scalar!(
-        "SELECT message FROM (SELECT message, sent_at FROM messages WHERE chat_id = $1 ORDER BY sent_at DESC LIMIT 10) sub ORDER BY sent_at ASC;",
+        "SELECT message FROM (SELECT message, sent_at FROM messages WHERE chat_id = $1 ORDER BY sent_at DESC LIMIT 6) sub ORDER BY sent_at ASC;",
         chat_id
     )
     .fetch_all(&db)
