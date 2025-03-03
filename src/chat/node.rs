@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use reqwest::{Client, header};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
-use super::db::{fetch_messages, insert_message, insert_tree};
+use super::db::{fetch_messages, insert_message, insert_tree, fetch_current_tree};
 
 #[derive(Deserialize, Serialize, Clone)]
 struct ChatResponse {
@@ -104,14 +104,28 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
 
     while let Some(Ok(msg)) = socket.recv().await {
         if let Message::Text(text) = msg {
-            let user_chatmessage = ChatMessage {
-                content: Some(text.to_string()),
-                role: "user".into(),
-                name: None,
-                tool_calls: None
-            };
+            let mut with_tree: bool = false;
 
-            history.push(user_chatmessage.clone());
+            if let Ok(nodes) = fetch_current_tree(workspace_id, &db).await {
+                if let Ok(nodes_json) = serde_json::to_string(&nodes) {
+                    history.push(ChatMessage {
+                        content: Some(format!("Current Tree in JSON format: {}\n{}", nodes_json, text)),
+                        role: "user".into(),
+                        name: None,
+                        tool_calls: None
+                    });
+                    with_tree = true;
+                }
+            }
+    
+            if !with_tree {
+                history.push(ChatMessage {
+                    content: Some(text.to_string()),
+                    role: "user".into(),
+                    name: None,
+                    tool_calls: None
+                });
+            }
 
             let res = client.post("https://api.groq.com/openai/v1/chat/completions")
                 .headers(headers.clone())
@@ -231,9 +245,16 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                             }
                         }
                     }
-                    insert_message(chat_id, user_chatmessage, &db).await;
+                    if let Some(old_user) = history.last_mut() {
+                        if with_tree {
+                            old_user.content = Some(text.to_string());
+                        }
+                        insert_message(chat_id, old_user, &db).await;
+                    }
                     history.push(chat_wrapper.choices[0].message.clone());
-                    insert_message(chat_id, chat_wrapper.choices[0].message.clone(), &db).await;
+                    if let Some(new_message) = history.last() {
+                        insert_message(chat_id, new_message, &db).await;
+                    }
                 }
                 Err(_e) => {
                     response.status = "error".to_string();
