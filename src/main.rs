@@ -14,6 +14,7 @@ use axum::{
     Router
 };
 use chat::websocket::websocket_listener;
+use chat::api::fetch_chat;
 use db::postgres::connect_db;
 use debug::{log, LogType::SETUP};
 use sqlx::{Pool, Postgres};
@@ -60,6 +61,7 @@ async fn main() {
         // .route("/dashboard", todo!())
         // .route("/workspace", todo!())
         .route("/chat", get(websocket_listener))
+        .route("/chat/fetch/{workspace_id}/{node_id}", get(fetch_chat))
         .nest("/auth", auth_handler)
         .nest("/api", api_handler)
         .with_state(db_pool.clone())

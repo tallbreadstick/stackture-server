@@ -1,4 +1,4 @@
-use super::db::{fetch_chat_id, verify_user_workspace, workspace_tree_exists};
+use super::db::{fetch_chat_id, verify_user_workspace};
 use super::node::{node_chat, ChatAIResponse, Node};
 use crate::api::api::extract_token_data_str;
 use crate::debug::{errlog, LogType::SOCKET};
@@ -10,7 +10,7 @@ use axum::{
     response::IntoResponse,
 };
 use derive_more::Display;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json;
 use sqlx::{Pool, Postgres};
 

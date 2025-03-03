@@ -164,6 +164,7 @@ pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Post
     }
 
     let mut keys: HashMap<i32, i32> = HashMap::new();
+    let mut rootChecked: bool = false;
 
     // i dont like the method, but hell yeahhh
     for i in tree.as_mut_slice() {
