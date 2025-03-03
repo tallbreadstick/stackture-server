@@ -88,7 +88,7 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
     // } else {
 
     history.push(ChatMessage {
-        content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when explicitly asked to create a tree. DO NOT include JSON or any references of 'generate_tree' function in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
+        // content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when told to create a tree. DO NOT include JSON or any references of 'generate_tree' function in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
         role: "system".into(),
         name: None,
         tool_calls: None
@@ -117,7 +117,7 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                 .headers(headers.clone())
                 .json(&json!({
                     "messages": history,
-                    "model": "llama-3.3-70b-versatile",
+                    "model": "deepseek-r1-distill-llama-70b",
                     "tool_choice": "auto",
                     "tools": [
                         {
@@ -189,7 +189,7 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                     let chat_wrapper: ChatWrapper = response_data.json().await.unwrap_or(ChatWrapper::default());
                     if chat_wrapper.choices.len() == 0 {
                         response.status = "error".to_string();
-                        response.message = "AI Generation Error!".to_string();
+                        response.message = "Request Timeout".to_string();
                         let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
                         return;
                     }
