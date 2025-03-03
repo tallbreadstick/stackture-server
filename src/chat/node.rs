@@ -109,7 +109,7 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
             if let Ok(nodes) = fetch_current_tree(workspace_id, &db).await {
                 if let Ok(nodes_json) = serde_json::to_string(&nodes) {
                     history.push(ChatMessage {
-                        content: Some(format!("Current Tree in JSON format: {}\n{}", nodes_json, text)),
+                        content: Some(format!("Current Tree in JSON format: {}\nQuery: {}", nodes_json, text)),
                         role: "user".into(),
                         name: None,
                         tool_calls: None
