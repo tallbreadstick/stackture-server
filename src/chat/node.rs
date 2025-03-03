@@ -87,8 +87,15 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
     //     });
     // } else {
 
+    // history.push(ChatMessage {
+    //     content: Some("You are an assistant that can generate tree using 'generate_tree' function. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when told to create a tree. DO NOT include any references of 'generate_tree' function in your responses. Your direct responses to the user must always be in natural language. Your responses must not contain any JSON format unless if in the 'generate_tree' function or when the user explicitly asked for a JSON format.".into()),
+    //     role: "system".into(),
+    //     name: None,
+    //     tool_calls: None
+    // });
+
     history.push(ChatMessage {
-        content: Some("You are an assistant that can generate tree using 'generate_tree' function. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when told to create a tree. DO NOT include any references of 'generate_tree' function in your responses. Your direct responses to the user must always be in natural language. Your responses must not contain any JSON format unless if in the 'generate_tree' function or when the user explicitly asked for a JSON format.".into()),
+        content: Some("You are an assistant. You are tasked to understand a problem and narrow it down to what the client already finished. Do not give a solution, but you will make a roadmap in a form of trees that broke down the main problem into multiple subproblems where one can start from the leaves of the tree. Only use the 'generate_tree' function when told to create a tree. DO NOT include JSON or any references of 'generate_tree' function in your responses to the user—only use JSON within the 'generate_tree' function. Your direct responses to the user must always be in natural language.".into()),
         role: "system".into(),
         name: None,
         tool_calls: None
