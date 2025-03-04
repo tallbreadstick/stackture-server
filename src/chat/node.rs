@@ -219,6 +219,12 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                     let tools: Vec<ToolCallInfo> = chat_wrapper.choices[0].clone().message.tool_calls.unwrap_or(vec![]);
 
                     if !message.is_empty() {
+                        if message.starts_with("<tool_call>") {
+                            response.status = "error".to_string();
+                            response.message = "Tree Generation Error!".to_string();
+                            let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
+                            return;
+                        }
                         response.message = message;
                         response.generated_tree = None;
                     } else if tools.len() > 0 {
