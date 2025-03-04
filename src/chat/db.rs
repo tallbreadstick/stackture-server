@@ -178,7 +178,9 @@ pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Post
     while cur_id.is_some() {
         let node_id: i32 = cur_id.unwrap();
   
-        if let Some(node_branches) = nodes.get(&node_id) {
+        if let Some(node_branches) = nodes.get_mut(&node_id) {
+            node_branches.retain(|x| {keys.get(x).is_some()});
+
             for i in node_branches {
                 if !valid_nodes_map.get(i).is_some() {
                     valid_nodes_map.insert(*i, ());
@@ -237,11 +239,11 @@ pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Post
                 return Err(Error::PoolClosed);
             }
 
-            *parent = *keys.get_mut(parent).unwrap();
+            *parent = *keys.get(parent).unwrap();
         }
 
         for branch in i.branches.as_mut_slice() {
-            *branch = *keys.get_mut(branch).unwrap();
+            *branch = *keys.get(branch).unwrap();
         }
 
         i.id = *keys.get(&i.id).unwrap();
