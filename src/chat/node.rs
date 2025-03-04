@@ -232,7 +232,7 @@ pub async fn node_chat(mut socket: WebSocket, workspace_id: i32, node_id: i32, c
                                 } else {
                                     if let Err(_) = insert_tree(workspace_id, &mut tree_nodes, &db).await {
                                         response.status = "error".to_string();
-                                        response.message = "Tree Insertion Error!".to_string();
+                                        response.message = "Tree Creation Error!".to_string();
                                         let _ = socket.send(Message::text(serde_json::to_string(&response).unwrap_or(String::new()))).await;
                                         return;
                                     }

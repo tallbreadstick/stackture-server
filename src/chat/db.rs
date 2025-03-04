@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::{HashMap, VecDeque}, hash::Hash};
 
 use sqlx::{query_as, query_scalar, Error, Pool, Postgres, Transaction};
 use super::node::{ChatMessage, Node};
@@ -155,6 +155,43 @@ pub async fn insert_message(chat_id: i32, message: &ChatMessage, db: &Pool<Postg
 }
 
 pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Postgres>) -> Result<(), Error> {
+    let mut keys: HashMap<i32, i32> = HashMap::new();
+    let mut nodes: HashMap<i32, Vec<i32>> = HashMap::new();
+    let mut root_id: i32 = 0;
+    let mut valid_nodes: VecDeque<i32> = VecDeque::new();
+    let mut valid_nodes_map: HashMap<i32, ()> = HashMap::new();
+    
+    for i in tree.as_slice() {
+        nodes.insert(i.id, i.branches.clone());
+        if root_id == 0 && i.parents.len() == 0 {
+            root_id = i.id;
+        }
+    }
+
+    if root_id == 0 {
+        return Err(Error::WorkerCrashed);
+    }
+
+    valid_nodes_map.insert(root_id, ());
+    let mut cur_id: Option<i32> = Some(root_id);
+
+    while cur_id.is_some() {
+        let node_id: i32 = cur_id.unwrap();
+  
+        if let Some(node_branches) = nodes.get(&node_id) {
+            for i in node_branches {
+                if !valid_nodes_map.get(i).is_some() {
+                    valid_nodes_map.insert(*i, ());
+                    valid_nodes.push_back(*i);
+                }
+            }
+        }
+
+        cur_id = valid_nodes.pop_front();
+    }
+
+    tree.retain(|x: &Node| {valid_nodes_map.get(&x.id).is_some()});
+
     let tx: Transaction<Postgres> = db.begin().await?;
 
     if let Err(_) = query_scalar!("DELETE FROM nodes WHERE workspace_id = $1;", workspace_id).fetch_optional(db).await {
@@ -163,11 +200,11 @@ pub async fn insert_tree(workspace_id: i32, tree: &mut Vec<Node>, db: &Pool<Post
         return Err(Error::PoolClosed);
     }
 
-    let mut keys: HashMap<i32, i32> = HashMap::new();
-    let mut rootChecked: bool = false;
-
     // i dont like the method, but hell yeahhh
     for i in tree.as_mut_slice() {
+        i.parents.retain(|x: &i32| {valid_nodes_map.get(x).is_some()});
+        i.branches.retain(|x: &i32| {valid_nodes_map.get(x).is_some()});
+
         match query_scalar!(
             "INSERT INTO nodes (workspace_id, name, summary, optional, resolved, icon) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
             workspace_id,

@@ -45,9 +45,7 @@ pub async fn fetch_chat(
                 });
             }
 
-            if chat_responses.len() > 0 {
-                return Ok(Json(chat_responses));
-            }
+            return Ok(Json(chat_responses));
         }
     }
 
